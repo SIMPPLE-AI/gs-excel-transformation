@@ -10,3 +10,4 @@ ruff
 sqlalchemy
 streamlit
 xlsxwriter
+altair<5
