@@ -156,6 +156,12 @@ def process_data(
         "Download link",
         "Work efficiency (㎡/h)",
     ]
+
+    # Ensure all required columns exist
+    for col in column_order:
+        if col not in df_filtered.columns:
+            df_filtered[col] = "NULL"
+
     df_reorder = df_filtered[column_order]
 
     df_test = df_reorder.copy()
