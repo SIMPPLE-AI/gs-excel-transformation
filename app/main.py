@@ -30,7 +30,7 @@ selected_server = st.sidebar.selectbox("Select Server", servers)
 adjusted_datetime = calculate_adjusted_datetime(selected_server)
 
 # File upload section
-uploaded_file_label = " ##### Upload a CSV or XLSX file for processing."
+uploaded_file_label = " ##### Please upload a CSV or XLSX file for processing."
 uploaded_file = st.file_uploader(uploaded_file_label, type=["csv", "xlsx"])
 
 # Input for dynamic exclusion of 'S/N' values
