@@ -113,7 +113,7 @@ def process_data(
         "Task start mode",
         "Remarks",
     ]
-    df.drop(columns=drop_columns, inplace=True)
+    df.drop(columns=drop_columns, inplace=True, errors="ignore")
     df.insert(0, "Id", np.nan)
 
     selected_datetime = datetime.strptime(selected_datetime_str, "%Y-%m-%d %H:%M:%S")
@@ -179,25 +179,22 @@ def process_data(
 
     # Remove commas and replace values in specified columns
     columns_with_comma_or_pct = [
+        "Task completion (%)",
         "Work efficiency (㎡/h)",
         "Actual cleaning area(㎡)",
         "Cleaning plan area (㎡)",
+        "Water usage (L)",
         "Brush (%)",
         "Filter (%)",
         "Squeegee(%)",
     ]
 
-    # For loop to handle multiple dtypes
+    # For loop to handle multiple dtypes; whole numbers are kept as int (e.g. 100 instead of 100.0)
     for column in columns_with_comma_or_pct:
         if df_replaced[column].dtype in ["object", "float64"]:
-            df_replaced[column] = (
-                df_replaced[column]
-                .astype(str)
-                .str.replace(",", "", regex=False)
-                .replace("0.00", "0")
-                .replace("100.00", "100")
-                .astype(float)
-            )
+            values = df_replaced[column].astype(str).str.replace(",", "", regex=False).astype(float)
+            # Build as an object Series, otherwise pandas upcasts the ints back to float
+            df_replaced[column] = pd.Series([int(x) if x.is_integer() else x for x in values], index=values.index, dtype="object")
 
     return df_replaced
 
@@ -342,6 +339,25 @@ def addPauseTimeNullCol(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def addLoopCountNullCol(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add a new column 'loop_count' with 'NULL' values right after 'pause_time'.
+
+    Parameters:
+        df (pandas.DataFrame): The DataFrame to which the new column will be added.
+
+    Returns:
+        pandas.DataFrame: DataFrame with the 'loop_count' column inserted in the correct position.
+    """
+    if "pause_time" in df.columns:
+        df["loop_count"] = "NULL"
+        cols = list(df.columns)
+        cols.remove("loop_count")
+        cols.insert(cols.index("pause_time") + 1, "loop_count")
+        df = df[cols]
+    return df
+
+
 def addTwoNullCols(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add two new columns 'Job Id' and 'Vendor' with NaN values to the DataFrame.
@@ -442,8 +458,17 @@ def process_uploaded_file(
     if selected_server in ["GS SGV2", "GS AUS"]:
         df_processed = addPauseTimeNullCol(df_processed)
 
+    # Add loop_count column for "GS SGV2"
+    if selected_server == "GS SGV2":
+        df_processed = addLoopCountNullCol(df_processed)
+
     # Add null columns for servers other than "GS SGV1"
     if selected_server != "GS SGV1":
         df_processed = addTwoNullCols(df_processed)
+
+    # GS SGV2 always includes lat and lng
+    if selected_server == "GS SGV2":
+        df_processed["lat"] = "NULL"
+        df_processed["lng"] = "NULL"
 
     return df_processed
