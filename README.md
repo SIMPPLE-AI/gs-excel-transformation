@@ -1,6 +1,8 @@
 # gs-excel-transformation
 
-Access the Streamlit web app here: https://gs-excel-transformation.streamlit.app/
+Streamlit Community Cloud app: https://gs-excel-transformation.streamlit.app/
+
+For the separate AWS Docker deployment, see the [deployment runbook](docs/deployment.md). It covers initial setup, manual updates, verification, rollback, and the Cloudflare handoff. Merging to `main` does not automatically deploy the AWS app.
 
 ## Important Notes
 1. The time differences on this repo are meant for the Singapore time zone on the Streamlit server due to their time zone (UTC+0)
@@ -10,7 +12,7 @@ Access the Streamlit web app here: https://gs-excel-transformation.streamlit.app
 
 1. At your project directory, clone this repo
 ```
-git clone https://github.com/KH-UgeneSolutions/gs-excel-transformation.git
+git clone https://github.com/SIMPPLE-AI/gs-excel-transformation.git
 ```
 2. Activate your venv
 
@@ -27,7 +29,7 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Deploying to Browser
+## Running locally
 1. Run the streamlit command
 ```
 streamlit run app/main.py
