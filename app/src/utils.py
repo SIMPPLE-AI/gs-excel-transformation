@@ -44,6 +44,44 @@ cols_to_rename = {
     "Work efficiency (ft²/h)": "performance",
 }
 
+# Columns of the robot_task_logs table, in table order.
+# The same in the SGV2, AUS, QA, and CA databases (examined 2026-10).
+ROBOT_TASK_LOGS_COLUMNS = [
+    "id",
+    "robot_name",
+    "serial_number",
+    "map_name",
+    "task_name",
+    "user",
+    "start_time",
+    "end_time",
+    "task_completion",
+    "cleaning_area",
+    "total_time",
+    "pause_time",
+    "loop_count",
+    "water_usage",
+    "brush",
+    "filter_element",
+    "squeegee",
+    "created_at",
+    "updated_at",
+    "area_planned",
+    "start_battery_level",
+    "end_battery_level",
+    "task_report_received",
+    "cleaning_mode",
+    "report_link",
+    "performance",
+    "job_id",
+    "vendor",
+    "lat",
+    "lng",
+    "vendor_end_status",
+    "vendor_plan_id",
+    "vendor_report_api",
+]
+
 
 # Function to read files dynamically based on file type
 def read_file(file: io.BytesIO) -> pd.DataFrame:
@@ -317,61 +355,32 @@ def process_ca_data(
     return df_replaced
 
 
-def addPauseTimeNullCol(df: pd.DataFrame) -> pd.DataFrame:
+def align_to_robot_task_logs(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Add a new column 'pause_time' with 'NULL' values between 'total_time' and 'water_usage'.
+    Put the columns in the same order as the robot_task_logs table.
+
+    The GS export does not have all the table columns. Each missing column gets "NULL".
+    The copied rows have no header, thus the column order must match the table.
 
     Parameters:
-        df (pandas.DataFrame): The DataFrame to which the new column will be added.
+        df (pandas.DataFrame): DataFrame with the renamed columns.
 
     Returns:
-        pandas.DataFrame: DataFrame with the 'pause_time' column inserted in the correct position.
+        pandas.DataFrame: DataFrame with the columns of ROBOT_TASK_LOGS_COLUMNS, in that order.
+
+    Raises:
+        RuntimeError: If the DataFrame has a column that is not in the table.
     """
-    if "total_time" in df.columns and "water_usage" in df.columns:
-        df["pause_time"] = "NULL"
-        cols = list(df.columns)
-        # Remove 'pause_time' first
-        cols.remove("pause_time")
-        # Insert it after 'total_time'
-        idx = cols.index("total_time") + 1
-        cols.insert(idx, "pause_time")
-        df = df[cols]
-    return df
+    unknown_columns = [col for col in df.columns if col not in ROBOT_TASK_LOGS_COLUMNS]
+    if unknown_columns:
+        raise RuntimeError(f"Columns not in robot_task_logs: {unknown_columns}")
 
+    df = df.copy()
+    for col in ROBOT_TASK_LOGS_COLUMNS:
+        if col not in df.columns:
+            df[col] = "NULL"
 
-def addLoopCountNullCol(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add a new column 'loop_count' with 'NULL' values right after 'pause_time'.
-
-    Parameters:
-        df (pandas.DataFrame): The DataFrame to which the new column will be added.
-
-    Returns:
-        pandas.DataFrame: DataFrame with the 'loop_count' column inserted in the correct position.
-    """
-    if "pause_time" in df.columns:
-        df["loop_count"] = "NULL"
-        cols = list(df.columns)
-        cols.remove("loop_count")
-        cols.insert(cols.index("pause_time") + 1, "loop_count")
-        df = df[cols]
-    return df
-
-
-def addTwoNullCols(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add two new columns 'Job Id' and 'Vendor' with NaN values to the DataFrame.
-
-    Parameters:
-        df (pandas.DataFrame): The DataFrame to which the new columns will be added.
-
-    Returns:
-        pandas.DataFrame: DataFrame with the two new columns added and NaN values filled with 'NULL'.
-    """
-    df["job_id"] = "NULL"
-    df["vendor"] = "NULL"
-
-    return df
+    return df[ROBOT_TASK_LOGS_COLUMNS]
 
 
 def convert_to_sg_time(utc_time: datetime) -> datetime:
@@ -454,21 +463,8 @@ def process_uploaded_file(
     # Rename columns
     df_processed = df_processed.rename(columns=cols_to_rename)
 
-    # Add pause_time column for "GS SGV2"
-    if selected_server in ["GS SGV2", "GS AUS"]:
-        df_processed = addPauseTimeNullCol(df_processed)
-
-    # Add loop_count column for "GS SGV2"
-    if selected_server == "GS SGV2":
-        df_processed = addLoopCountNullCol(df_processed)
-
-    # Add null columns for servers other than "GS SGV1"
+    # GS SGV1 keeps its old format. The other servers use the robot_task_logs columns.
     if selected_server != "GS SGV1":
-        df_processed = addTwoNullCols(df_processed)
-
-    # GS SGV2 always includes lat and lng
-    if selected_server == "GS SGV2":
-        df_processed["lat"] = "NULL"
-        df_processed["lng"] = "NULL"
+        df_processed = align_to_robot_task_logs(df_processed)
 
     return df_processed
