@@ -1,5 +1,7 @@
 # gs-excel-transformation
 
+AWS Docker app (through Cloudflare): https://gs-excel.simpple.app/
+
 Streamlit Community Cloud app: https://gs-excel-transformation.streamlit.app/
 
 For the separate AWS Docker deployment, see the [deployment runbook](docs/deployment.md). It covers initial setup, manual updates, verification, rollback, and the Cloudflare handoff. Merging to `main` does not automatically deploy the AWS app.

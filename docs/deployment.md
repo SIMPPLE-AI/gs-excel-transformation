@@ -4,22 +4,27 @@ This app has two independent hosting options: Streamlit Community Cloud and Dock
 
 ## Current AWS setup
 
-Recorded on 2026-09-14. Recheck live state before making changes.
+Recorded on 2026-09-14. Updated on 2026-10-30. Recheck live state before making changes.
 
 | Setting | Value |
 | --- | --- |
+| Public URL | `https://gs-excel.simpple.app/`, through Cloudflare |
+| EC2 instance | `i-07be769a10182ab8e` ("Streamlit [calculator, chatbot, optimiserform]"), `ap-southeast-1` |
+| Connect to the host | EC2 Instance Connect in the AWS console, user `ubuntu` |
 | Repository directory | `/home/ubuntu/gs-excel-transformation` |
 | Container | `gs-excel-transformation` |
 | Initial application commit | `1295f66d4e8667555438f798c73d067d8a98253b`, includes PR #3 |
 | Initial image tag | `gs-excel-transformation:1295f66` |
+| Current application commit | `0ec46a625365e451aef3d797d2dc0995ef400805`, includes PR #6. Deployed 2026-10-30. |
+| Current image tag | `gs-excel-transformation:0ec46a6` |
 | Host binding | `0.0.0.0:8880` to container TCP `8501` |
-| Protocol | HTTP, not HTTPS |
+| Protocol | HTTPS at Cloudflare (`gs-excel.simpple.app`). HTTP from Cloudflare to the origin port `8880`. |
 | Restart policy | `unless-stopped` |
 | Limits | 1 CPU, 1 GiB memory, 256 processes; no additional swap allowance |
 | Docker logs | `max-size=10m`, `max-file=3` |
 | Runtime user | Non-root UID/GID `10001:10001` |
 | Health check | `/_stcore/health` every 30 seconds |
-| Hostnames and instance addresses | Obtain from the deployment owner; do not assume an EC2 public address is permanent |
+| Instance addresses | Obtain from the AWS console. Do not assume that the EC2 public address is permanent. |
 
 The host also runs calculator, chatbot, and optimiser containers on ports `8501`, `8502`, and `8503`. Do not stop, replace, or prune those containers or their images.
 
@@ -36,6 +41,13 @@ Public IPv4 access to host port `8880` was explicitly enabled for initial testin
 - Do not open additional ports or change shared security groups as part of a routine code update.
 
 ### Cloudflare handoff
+
+Status on 2026-10-30: `https://gs-excel.simpple.app/` is live through Cloudflare. It gives the same Streamlit front end and `/_stcore/host-config` as the origin port `8880`. These items are still open:
+
+- The security group still permits port `8880` from `0.0.0.0/0`. Thus, users can go around Cloudflare to the origin. To restrict the origin, see the paragraph about Cloudflare address ranges below.
+- It is not recorded if Cloudflare uses a proxied DNS record or a tunnel. It is also not recorded if Cloudflare Access (authentication) is on. Get these facts from the Cloudflare administrator.
+
+The text below is the initial handoff.
 
 Give the Cloudflare administrator the current origin address and **HTTP port `8880`**. Ask them to configure a company hostname, HTTPS, WebSocket support, and authentication if needed.
 
@@ -146,11 +158,11 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 Allow startup time. HTTP `200` and Docker `healthy` confirm the health endpoint responds, not that spreadsheet processing is correct. Verify the other three apps remain running.
 
-In a browser using the intended access path:
+In a browser, open `https://gs-excel.simpple.app/`:
 
 1. Confirm the upload form and Process button load. This also exercises the Streamlit WebSocket connection.
 2. Upload a non-sensitive representative CSV or XLSX, select the intended server, and enter a cutoff time older than the sample's receive-task-report times. The filter is strictly greater than the cutoff.
-3. For GS SGV2, check `loop_count` after `pause_time`, and the `lat` and `lng` columns. PR #3 adds these automatically.
+3. For GS SGV2, GS AUS, GS QA, and GS CA, make sure that the output has the 33 `robot_task_logs` columns in table order (`ROBOT_TASK_LOGS_COLUMNS` in `app/src/utils.py`). The last 3 columns (`vendor_end_status`, `vendor_plan_id`, `vendor_report_api`) are `NULL`. The lat/lng checkbox shows only for GS SGV1.
 4. Verify whole-number formatting, fractional values, row count, and generated timestamps against expected output.
 5. Download the XLSX and inspect it. Test the copy button separately; browser clipboard access may be unavailable on a plain HTTP origin.
 
