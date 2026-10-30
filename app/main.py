@@ -43,8 +43,11 @@ if exclude_sn:  # Show text field when toggle is ON
     if exclude_values_input:
         exclude_values = [value.strip() for value in exclude_values_input.split(",")]
 
-# Checkbox to add two null columns: lat and lon
-add_lat_lon = st.checkbox("Add Extra Columns for Latitude (lat) and Longitude (lon)")
+# Checkbox to add two null columns: lat and lon.
+# Only for GS SGV1. The other servers always have all the robot_task_logs columns.
+add_lat_lon = False
+if selected_server == "GS SGV1":
+    add_lat_lon = st.checkbox("Add Extra Columns for Latitude (lat) and Longitude (lon)")
 
 # Datetime input
 selected_datetime_str = st.text_input(
