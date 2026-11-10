@@ -1,0 +1,14 @@
+[Unit]
+Description=Deploy gs-excel-transformation from origin/main
+Documentation=https://github.com/SIMPPLE-AI/gs-excel-transformation/blob/main/docs/deployment.md
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+ExecStart=/usr/local/bin/gs-excel-deploy
+TimeoutStartSec=1200
+Nice=10

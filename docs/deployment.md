@@ -1,6 +1,8 @@
 # Deployment runbook
 
-This app has two independent hosting options: Streamlit Community Cloud and Docker on AWS EC2. Updating one does not update the other. Merging a PR does **not** deploy the EC2 container; there is no deployment workflow in this repository.
+This app has two independent hosting options: Streamlit Community Cloud and Docker on AWS EC2. Updating one does not update the other.
+
+The EC2 container deploys automatically. A systemd timer on the host looks at `main` every 5 minutes and deploys a new app commit. See [Automatic deployment](#automatic-deployment). There is no GitHub Actions workflow. The host pulls the changes.
 
 ## Current AWS setup
 
@@ -108,7 +110,62 @@ docker run -d \
 
 This binding exposes the port on host IPv4 interfaces, subject to network controls. It reproduces the initial public-access deployment. For a local tunnel connector, use `127.0.0.1:8880:8501` instead, only after agreeing the routing change. `unless-stopped` requires the Docker daemon to start after a host reboot; it does not restart a manually stopped container.
 
+## Automatic deployment
+
+The timer `gs-excel-deploy.timer` starts `gs-excel-deploy.service` every 5 minutes. The service operates `/usr/local/bin/gs-excel-deploy`, as user `ubuntu`. That file is an installed copy of `deploy/deploy.sh`.
+
+What a run does:
+
+1. It fetches `origin/main` and fast-forwards the checkout. If the checkout has local changes, it stops.
+2. If `app/`, `requirements.txt`, `Dockerfile`, and `.dockerignore` did not change since the running image, it stops. A docs-only commit does not restart the app.
+3. It builds `gs-excel-transformation:<sha7>`. If the build does not complete, the old container continues to run.
+4. It stops the running container and renames it to `gs-excel-transformation-backup-<UTC time>-<old sha7>`. It starts the new container with the settings in [First deployment](#first-deployment).
+5. It waits up to 150 seconds for Docker `healthy` and a `200` from `/_stcore/health`. If the container is not healthy, it renames the new container to `gs-excel-transformation-failed-<UTC time>-<sha7>` and starts the backup again.
+6. It keeps the 2 newest backup and failed containers. It removes older ones, and the app images that no container uses. It never uses `docker prune`.
+
+Each merge to `main` that changes the app restarts the container. The restart stops the app for about 30 seconds and clears upload sessions.
+
+### Logs and status
+
+```bash
+systemctl list-timers --no-pager gs-excel-deploy.timer
+journalctl -u gs-excel-deploy --no-pager -n 50
+cat ~/.gs-excel-deploy/deploys.log
+```
+
+`~/.gs-excel-deploy/deploys.log` has one line for each deploy: time, commit, and backup name.
+
+### A commit that did not deploy
+
+If a build or the health check does not succeed, the script writes the commit to `~/.gs-excel-deploy/failed-sha`. It does not try that commit again. To try again:
+
+- Merge a fix to `main`. The next run deploys the new commit.
+- Or, for a temporary problem (for example, the network during `pip install`), remove the file: `rm ~/.gs-excel-deploy/failed-sha`.
+
+### Change the deploy script or the units
+
+A `git pull` does not change the installed script or the units. After a merge that changes `deploy/`, a person installs them:
+
+```bash
+cd /home/ubuntu/gs-excel-transformation
+sudo install -m 0755 deploy/deploy.sh /usr/local/bin/gs-excel-deploy
+sudo cp deploy/gs-excel-deploy.service deploy/gs-excel-deploy.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+```
+
+Do a test of a changed script before you merge: `bash deploy/test_deploy.sh`. The test uses a fake `docker` and a temporary git repository.
+
+### Stop automatic deployment
+
+```bash
+sudo systemctl disable --now gs-excel-deploy.timer
+```
+
+To start it again: `sudo systemctl enable --now gs-excel-deploy.timer`. To deploy now, without the timer: `sudo systemctl start gs-excel-deploy.service`.
+
 ## Updating an existing deployment
+
+Use this manual procedure only when the timer is stopped. If the timer runs, merge to `main` and let the timer deploy.
 
 Coordinate a maintenance window. Replacing the container causes brief downtime and clears upload sessions. Review this runbook against the running container's settings before using it.
 
