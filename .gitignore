@@ -176,3 +176,6 @@ pyvis/*.html
 
 # NPM packages
 node_modules/
+
+# Host-local deployment logs and build status
+.deploy/
