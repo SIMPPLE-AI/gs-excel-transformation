@@ -2,7 +2,7 @@
 
 This app has two independent hosting options: Streamlit Community Cloud and Docker on AWS EC2. Updating one does not update the other.
 
-The EC2 container deploys automatically. A systemd timer on the host looks at `main` every 5 minutes and deploys a new app commit. See [Automatic deployment](#automatic-deployment). There is no GitHub Actions workflow. The host pulls the changes.
+The EC2 container deploys automatically. A systemd timer on the host looks at `main` every minute and deploys a new app commit. See [Automatic deployment](#automatic-deployment). There is no GitHub Actions workflow. The host pulls the changes.
 
 ## Current AWS setup
 
@@ -113,7 +113,9 @@ This binding exposes the port on host IPv4 interfaces, subject to network contro
 
 ## Automatic deployment
 
-The timer `gs-excel-deploy.timer` starts `gs-excel-deploy.service` every 5 minutes. The service operates `/usr/local/bin/gs-excel-deploy`, as user `ubuntu`. That file is an installed copy of `deploy/deploy.sh`.
+The timer `gs-excel-deploy.timer` starts `gs-excel-deploy.service` every minute (1440 runs each day). The service operates `/usr/local/bin/gs-excel-deploy`, as user `ubuntu`. That file is an installed copy of `deploy/deploy.sh`.
+
+If `main` did not change, a run takes about 1 second: a `git fetch` of a few KB and a `docker inspect`. An app change is live about 1 to 2 minutes after the merge.
 
 What a run does:
 
@@ -134,7 +136,7 @@ journalctl -u gs-excel-deploy --no-pager -n 50
 cat ~/.gs-excel-deploy/deploys.log
 ```
 
-`~/.gs-excel-deploy/deploys.log` has one line for each deploy: time, commit, and backup name.
+`~/.gs-excel-deploy/deploys.log` has one line for each deploy: time, commit, and backup name. Use this file for the deploy history. systemd writes about 3 journal lines for each run, also when nothing changed, so journald removes old deploy messages sooner.
 
 ### A commit that did not deploy
 

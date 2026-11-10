@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pull-based deploy for gs-excel-transformation on the AWS EC2 host.
 #
-# The systemd timer gs-excel-deploy.timer starts this script every 5 minutes.
+# The systemd timer gs-excel-deploy.timer starts this script every minute.
 # The installed copy is /usr/local/bin/gs-excel-deploy. A git pull does NOT update
 # that copy. A person installs a new version (see docs/deployment.md).
 #
