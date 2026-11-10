@@ -1,10 +1,10 @@
 [Unit]
-Description=Look for new commits on gs-excel-transformation main every 5 minutes
+Description=Look for new commits on gs-excel-transformation main every minute
 
 [Timer]
-OnBootSec=5min
-OnUnitActiveSec=5min
-RandomizedDelaySec=30
+OnBootSec=2min
+OnUnitActiveSec=1min
+RandomizedDelaySec=10
 
 [Install]
 WantedBy=timers.target

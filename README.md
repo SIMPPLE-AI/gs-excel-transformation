@@ -4,7 +4,7 @@ AWS Docker app (through Cloudflare): https://gs-excel.simpple.app/
 
 Streamlit Community Cloud app: https://gs-excel-transformation.streamlit.app/
 
-For the separate AWS Docker deployment, see the [deployment runbook](docs/deployment.md). It covers initial setup, manual updates, verification, rollback, and the Cloudflare handoff. The AWS app deploys automatically: a timer on the host deploys each new app commit on `main` within about 5 minutes.
+For the separate AWS Docker deployment, see the [deployment runbook](docs/deployment.md). It covers initial setup, manual updates, verification, rollback, and the Cloudflare handoff. The AWS app deploys automatically: a timer on the host deploys each new app commit on `main` within about 1 to 2 minutes.
 
 ## Important Notes
 1. The time differences on this repo are meant for the Singapore time zone on the Streamlit server due to their time zone (UTC+0)
