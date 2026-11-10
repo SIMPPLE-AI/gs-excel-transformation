@@ -17,8 +17,9 @@ Recorded on 2026-09-14. Updated on 2026-10-30. Recheck live state before making 
 | Container | `gs-excel-transformation` |
 | Initial application commit | `1295f66d4e8667555438f798c73d067d8a98253b`, includes PR #3 |
 | Initial image tag | `gs-excel-transformation:1295f66` |
-| Current application commit | `0ec46a625365e451aef3d797d2dc0995ef400805`, includes PR #6. Deployed 2026-10-30. |
-| Current image tag | `gs-excel-transformation:0ec46a6` |
+| Automatic deployment | `gs-excel-deploy.timer`, installed and enabled 2026-11-10 (PR #7) |
+| Running image | Changes with each app commit on `main`. Use `docker inspect -f '{{.Config.Image}}' gs-excel-transformation`. First automatic deploy: `gs-excel-transformation:593f9f6`, 2026-11-10. |
+| Pre-PR #5 Docker files | Moved to `/home/ubuntu/gs-excel-predeploy-backup-20261110/`. They are the same as the tracked files. |
 | Host binding | `0.0.0.0:8880` to container TCP `8501` |
 | Protocol | HTTPS at Cloudflare (`gs-excel.simpple.app`). HTTP from Cloudflare to the origin port `8880`. |
 | Restart policy | `unless-stopped` |
